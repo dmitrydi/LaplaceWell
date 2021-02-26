@@ -14,6 +14,22 @@ LaplWell::~LaplWell() {};
 double LaplWell::pwd(const double td) const {
 	return InverseLaplace(pwd_lapl, td);
 }
+void LaplWell::pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const {
+	vector<future<void>> fut;
+	auto xbegin = tds.begin();
+	auto ybegin = pwds.begin();
+	for (int i = 0; i < nthreads; ++i) {
+		fut.push_back(async(launch::async, [&]{return IverseLaplSingleThread(pwd, xbegin++, tds.end(), ybegin++, nthreads);}));
+	}
+}
+
+double LaplWell::qwd(const double td) const {
+	return InverseLaplace(qwd_lapl, td);
+}
+
+double LaplWell::pd(const double td, const double xd, const double yd, const double zd) const {
+	return InverseLaplaceXYZ(pd_lapl, td, xd, yd, zd);
+}
 
 namespace Rectangular {
 Well::Well(): LaplWell(), bess(false), dx(1./NSEG) {};
@@ -23,8 +39,6 @@ double Well::SEXP(const double y, const double e) const {
 	double b = exp(-2.*y*e);
 	return b/(1.-b);
 };
-
-
 
 void Well::fill_if1(const double u,
 		const double ywd, const double yed,
@@ -42,7 +56,7 @@ void Well::fill_if1(const double u,
 void Well::vect_if1_yd(const double u,
 		const double yd, const double ywd, const double yed,
 		const double alpha,
-		Eigen::VectorXd& buf) {
+		Eigen::VectorXd& buf) const {
 	double squ = sqrt(u+alpha*alpha);
 	double ans = 0.5*dx/squ;
 	double dy = std::abs(yd-ywd);
@@ -75,8 +89,8 @@ void Well::fill_if2e(const double u,
 		aydywd = abs(ywd-ywd); //!
 		kpiOxed = k*PI/xed;
 		ydPywd = ywd + ywd; //!
-		mmult = 2./kpiOxed/ek_*((exp(-ek_*(2.*yed - ydPywd)) + exp(-ek_*ydPywd) + exp(-ek_*(2.*yed)))*(1 + sexp_)
-				+ sexp_);
+		mmult = 2./kpiOxed/ek_*((std::exp(-ek_*(2.*yed - ydPywd)) + std::exp(-ek_*ydPywd) + std::exp(-ek_*(2.*yed-aydywd)))*(1 + sexp_)
+				+ std::exp(-ek_*aydywd)*sexp_);
 		for (int j = 0; j < 2*NSEG; ++j) {
 			double x1 = -1.+j*dx;
 			double x2 = x1 + dx;
@@ -240,7 +254,13 @@ Fracture::Fracture(const Boundary boundary, const double xwd, const double xed,
 				_src_matrix(MakeSrcMatrix()){};
 
 double Fracture::pd_lapl(const double u, const double xd, const double yd, const double zd) const {
-	return 0;
+	auto svect = MakeMatrix(u).colPivHouseholderQr().solve(MakeRhs(u));
+	auto green = MakeGreenVector(u, xd, yd, zd);
+	double ans = 0.;
+	for (int i = 0; i < 2*NSEG; ++i) {
+		ans += svect(i+1)*green(i);
+	}
+	return ans;
 };
 
 double Fracture::pwd_lapl(const double u) const {
@@ -250,7 +270,6 @@ double Fracture::pwd_lapl(const double u) const {
 double Fracture::qwd_lapl(const double u) const {
 	return 1./u/u/pwd_lapl(u);
 }
-
 
 Eigen::MatrixXd Fracture::MakeMatrix(const double u) const {
 	Eigen::MatrixXd source_matrix_ = Eigen::MatrixXd::Zero(2*NSEG+1, 2*NSEG+1);
@@ -308,7 +327,17 @@ Eigen::MatrixXd Fracture::MakeSrcMatrix() const {
 }
 
 Eigen::VectorXd Fracture::MakeGreenVector(const double u, const double xd, const double yd, const double zd) const {
-	Eigen::VectorXd ans(2*NSEG), buf(2*NSEG);
+	Eigen::VectorXd ans(2*NSEG);
+	Eigen::VectorXd buf(2*NSEG);
+	double mult = PI/xed;
+	vect_if1_yd(u, yd, ywd, yed, alpha, buf);
+	ans = mult*buf;
+	vect_if2e_yd(u, xd, xwd, xed, xede,	yd, ywd, yed, alpha, buf);
+	ans += mult*buf;
+	vect_i1f2h_yd(u, xd, xwd, xed, xede, yd, ywd, alpha, buf);
+	ans += mult*buf;
+	vect_i2f2h_yd(u, yd, ywd, alpha, buf);
+	ans += mult*buf;
 	return ans;
 }
 

@@ -14,6 +14,9 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <future>
+#include <iterator>
+#include <exception>
 #include "chbessel.h"
 #include "profile.h"
 #include "quadrature.h"
@@ -23,12 +26,22 @@ static const int NCOEF = 12;
 
 std::vector<double> CalcStehf(const int n);
 
+template <typename It>
+bool SafeNext(It& it, It it_end, int step) {
+	for (int i = 0; i < step; ++i) {
+		if (++it == it_end) return false;
+	}
+	return true;
+}
+
 class LaplWell {
 public:
 	LaplWell();
 	double pwd(const double td) const;
 	double qwd(const double td) const;
 	double pd(const double u, const double xd, const double yd, const double zd = 0.) const;
+	void pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const;
+
 	template <typename Func>
 	double InverseLaplace(Func func, const double td) const {
 		double s_mult = std::log(2.)/td;
@@ -41,6 +54,26 @@ public:
 		}
 		return ans;
 	}
+	template <typename Func>
+	double InverseLaplaceXYZ(Func func, const double td, const double x, const double y, const double z = 0.) const {
+		double s_mult = std::log(2.)/td;
+		double ans = 0.;
+		for (int i = 1; i <= NCOEF; ++i) {
+			double s = i*s_mult;
+			{
+			ans += (this->*func)(s, x, y, z)*s*stehf_coefs[i]/i;
+			}
+		}
+		return ans;
+	}
+	template <typename Func, typename Iterator>
+	void IverseLaplSingleThread(Func func, Iterator x_begin, Iterator x_end, Iterator y_begin, int step) const {
+		do {
+			*y_begin = (this->*func)(*x_begin);
+			y_begin = next(y_begin, step);
+		} while(SafeNext(x_begin, x_end, step));
+	}
+
 	virtual double pd_lapl(const double u, const double xd, const double yd, const double zd = 0.) const = 0;
 	virtual double pwd_lapl(const double u) const = 0;
 	virtual double qwd_lapl(const double u) const = 0;
@@ -85,7 +118,7 @@ protected:
 	void vect_if1_yd(const double u,
 			const double yd, const double ywd, const double yed,
 			const double alpha,
-			Eigen::VectorXd& buf);
+			Eigen::VectorXd& buf) const;
 
 	void fill_if2e(const double u,
 			const double xwd,
