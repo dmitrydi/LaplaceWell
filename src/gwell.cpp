@@ -15,21 +15,68 @@ double LaplWell::pwd(const double td) const {
 	return InverseLaplace(pwd_lapl, td);
 }
 void LaplWell::pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const {
-	vector<future<void>> fut;
-	auto xbegin = tds.begin();
-	auto ybegin = pwds.begin();
-	for (int i = 0; i < nthreads; ++i) {
-		fut.push_back(async(launch::async, [&]{return IverseLaplSingleThread(pwd, xbegin++, tds.end(), ybegin++, nthreads);}));
-	}
+	InverseLaplaceParallel(pwd, tds, pwds, nthreads);
 }
 
 double LaplWell::qwd(const double td) const {
 	return InverseLaplace(qwd_lapl, td);
 }
 
+void LaplWell::qwd_parallel(std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const {
+	InverseLaplaceParallel(qwd, tds, qwds, nthreads);
+}
+
 double LaplWell::pd(const double td, const double xd, const double yd, const double zd) const {
 	return InverseLaplaceXYZ(pd_lapl, td, xd, yd, zd);
 }
+
+double LaplWell::dum_pd(const double td, const double xd, const double yd, const double zd) const {
+	return td*xd*yd;
+};
+
+//void LaplWell::pd_parallel(const double td, const VectorD& xs, const VectorD& ys, MatrixD& ans, int nthreads) const {
+//	vector<future<void>> futures;
+//	MatrixXY m_input = MakeGrid(xs, ys);
+//	assert(m_input.size() == ans.size());
+//	assert(m_input[0].size() == ans[0].size());
+//	size_t page_size;
+//	if ((m_input.size() % nthreads) == 0 ) {
+//		page_size = m_input.size()/nthreads;
+//	} else {
+//		page_size = m_input.size()/nthreads+1;
+//	}
+//
+//	auto in_pages = Paginate(m_input, page_size);
+//	auto out_pages = Paginate(ans, page_size);
+//	auto in_page = in_pages.begin();
+//	auto out_page = out_pages.begin();
+//	for (int i = 0; i < nthreads; ++i) {
+//		futures.push_back(async(std::launch::async, [&]{return XYPageSingleThread(td, *in_page++, *out_page++);}));
+//	}
+//}
+
+//void LaplWell::XYPageSingleThread(const double td,
+//			IteratorRange<MatrixXY::iterator> m_in,
+//			IteratorRange<MatrixD::iterator> m_out) const {
+//	size_t nrows = m_in.size();
+//	assert(nrows==m_out.size());
+//	size_t ncols = m_in.begin()->size();
+//	//assert(ncols==m_out.begin()->size());
+//	auto in_row = m_in.begin();
+//	auto out_row = m_out.begin();
+//	for (size_t i = 0; i < nrows; ++i) {
+//		auto point = in_row->begin();
+//		auto out = out_row->begin();
+//		for (size_t j = 0; j < ncols; ++j) {
+//			*out = dum_pd(td, point->x, point->y);
+//			++point;
+//			++out;
+//		}
+//		++in_row;
+//		++out_row;
+//	}
+//
+//}
 
 namespace Rectangular {
 Well::Well(): LaplWell(), bess(false), dx(1./NSEG) {};

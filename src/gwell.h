@@ -17,31 +17,31 @@
 #include <future>
 #include <iterator>
 #include <exception>
+#include <cassert>
 #include "chbessel.h"
 #include "profile.h"
 #include "quadrature.h"
-#include <mutex>
+#include "auxillary.h"
 
 static const int NCOEF = 12;
 
 std::vector<double> CalcStehf(const int n);
 
-template <typename It>
-bool SafeNext(It& it, It it_end, int step) {
-	for (int i = 0; i < step; ++i) {
-		if (++it == it_end) return false;
-	}
-	return true;
-}
+
 
 class LaplWell {
 public:
 	LaplWell();
 	double pwd(const double td) const;
 	double qwd(const double td) const;
-	double pd(const double u, const double xd, const double yd, const double zd = 0.) const;
+	double pd(const double td, const double xd, const double yd, const double zd = 0.) const;
 	void pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const;
-
+	void qwd_parallel(std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const;
+	double dum_pd(const double td, const double xd, const double yd, const double zd = 0.) const;
+//	void pd_parallel(const double td, const VectorD& xs, const VectorD& ys, MatrixD& ans, int nthreads) const;
+//	void XYPageSingleThread(const double td,
+//				IteratorRange<MatrixXY::iterator> m_in,
+//				IteratorRange<MatrixD::iterator> m_out) const;
 	template <typename Func>
 	double InverseLaplace(Func func, const double td) const {
 		double s_mult = std::log(2.)/td;
@@ -54,6 +54,18 @@ public:
 		}
 		return ans;
 	}
+
+	template <typename Func>
+	void InverseLaplaceParallel(Func func, std::vector<double>& tds, std::vector<double>& props, int nthreads) const {
+		assert (tds.size() == props.size());
+		std::vector<std::future<void>> fut;
+		auto xbegin = tds.begin();
+		auto ybegin = props.begin();
+		for (int i = 0; i < nthreads; ++i) {
+			fut.push_back(async(std::launch::async, [&]{return TSingleThread(func, xbegin++, tds.end(), ybegin++, nthreads);}));
+		}
+	}
+
 	template <typename Func>
 	double InverseLaplaceXYZ(Func func, const double td, const double x, const double y, const double z = 0.) const {
 		double s_mult = std::log(2.)/td;
@@ -67,13 +79,12 @@ public:
 		return ans;
 	}
 	template <typename Func, typename Iterator>
-	void IverseLaplSingleThread(Func func, Iterator x_begin, Iterator x_end, Iterator y_begin, int step) const {
+	void TSingleThread(Func func, Iterator x_begin, Iterator x_end, Iterator y_begin, int step) const {
 		do {
 			*y_begin = (this->*func)(*x_begin);
 			y_begin = next(y_begin, step);
 		} while(SafeNext(x_begin, x_end, step));
 	}
-
 	virtual double pd_lapl(const double u, const double xd, const double yd, const double zd = 0.) const = 0;
 	virtual double pwd_lapl(const double u) const = 0;
 	virtual double qwd_lapl(const double u) const = 0;
