@@ -49,6 +49,7 @@ int main() {
 	TestRunner tr;
 	//RUN_TEST(tr, TestMakeGrid);
 	//RUN_TEST(tr, TestNPaginate);
-	RUN_TEST(tr, TestParallelDum);
+	//RUN_TEST(tr, TestParallelDum);
+	RUN_TEST(tr, TestPDXY);
 
 }

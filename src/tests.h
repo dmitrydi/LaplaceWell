@@ -18,6 +18,7 @@
 #include <future>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
+#include "gwell.h"
 
 std::ostream& operator<<(std::ostream& os, const PointXYZV& p);
 
@@ -26,5 +27,7 @@ void TestMakeGrid();
 void TestNPaginate();
 void TestNPaginateXY(size_t nx, size_t ny, size_t nthread);
 
-void _TestParallelDum(MatrixXYZV& grid, int nthread);
+MatrixXYZV _TestParallelDum(const std::vector<double>& xs, const std::vector<double>& ys, int nthread);
 void TestParallelDum();
+
+void TestPDXY();

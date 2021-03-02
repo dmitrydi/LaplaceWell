@@ -38,7 +38,11 @@ public:
 	void pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const;
 	void qwd_parallel(std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const;
 	double dum_pd(const double td, const double xd, const double yd, const double zd = 0.) const;
-//	void pd_parallel(const double td, const VectorD& xs, const VectorD& ys, MatrixD& ans, int nthreads) const;
+	MatrixXYZV pd_parallel(const double td, int nthreads, const std::vector<double>& xs,
+			const std::vector<double>& ys,
+			const std::vector<double>& zs = {0.}) const;
+	void pd_thread(const double td, IteratorRange<MatrixXYZV::iterator> page) const;
+
 //	void XYPageSingleThread(const double td,
 //				IteratorRange<MatrixXY::iterator> m_in,
 //				IteratorRange<MatrixD::iterator> m_out) const;

@@ -34,6 +34,25 @@ double LaplWell::dum_pd(const double td, const double xd, const double yd, const
 	return td*xd*yd;
 };
 
+MatrixXYZV LaplWell::pd_parallel(const double td, int nthreads, const std::vector<double>& xs,
+			const std::vector<double>& ys,
+			const std::vector<double>& zs) const {
+	vector<future<void>> futures;
+	MatrixXYZV grid = MakeGrid(xs, ys, zs);
+	auto pages = NPaginate(grid, nthreads);
+	for (auto p: pages) {
+		futures.push_back(async([&](auto pg){return pd_thread(td, pg);}, p));
+	}
+	return grid;
+};
+void LaplWell::pd_thread(const double td, IteratorRange<MatrixXYZV::iterator> page) const {
+	for (auto& row: page) {
+		for (auto& el : row) {
+			el.val = pd(td, el.x, el.y, el.z);
+		}
+	}
+};
+
 //void LaplWell::pd_parallel(const double td, const VectorD& xs, const VectorD& ys, MatrixD& ans, int nthreads) const {
 //	vector<future<void>> futures;
 //	MatrixXY m_input = MakeGrid(xs, ys);
@@ -301,8 +320,8 @@ Fracture::Fracture(const Boundary boundary, const double xwd, const double xed,
 				_src_matrix(MakeSrcMatrix()){};
 
 double Fracture::pd_lapl(const double u, const double xd, const double yd, const double zd) const {
-	auto svect = MakeMatrix(u).colPivHouseholderQr().solve(MakeRhs(u));
-	auto green = MakeGreenVector(u, xd, yd, zd);
+	Eigen::VectorXd svect = MakeMatrix(u).colPivHouseholderQr().solve(MakeRhs(u));
+	Eigen::VectorXd green = MakeGreenVector(u, xd, yd, zd);
 	double ans = 0.;
 	for (int i = 0; i < 2*NSEG; ++i) {
 		ans += svect(i+1)*green(i);

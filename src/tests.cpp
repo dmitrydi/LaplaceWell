@@ -8,6 +8,7 @@
 #include "tests.h"
 
 using namespace std;
+using namespace Rectangular;
 
 ostream& operator<<(ostream& os, const PointXYZV& p) {
 	os << "(" << p.x << ", " << p.y << ", " << p.z << ", " << p.val << ")";
@@ -72,30 +73,66 @@ void TestNPaginateXY(size_t nx, size_t ny, size_t nthread) {
 }
 
 void TestParallelDum() {
-	vector<double> xs = LinSpaced(0.,10.,1000);
-	vector<double> ys = LinSpaced(0.,10.,5000);
-	auto grid = MakeGrid(xs, ys);
-	{ LOG_DURATION("single");
-		_TestParallelDum(grid, 1);
+	vector<double> xs = LinSpaced(0.,10.,11);
+	vector<double> ys = LinSpaced(0.,10.,11);
+	auto grid = _TestParallelDum(xs, ys, 4);
+	for (auto& row: grid) {
+		for (auto el: row) {
+			cout << el << " ";
+		}
+		cout << endl;
 	}
-	{LOG_DURATION("multi");
-		_TestParallelDum(grid, 4);
-
-	}
-	cout << grid[0][0] << endl;
 }
 
-void _TestParallelDum(MatrixXYZV& grid, int nthread) {
+MatrixXYZV _TestParallelDum(const vector<double>& xs, const vector<double>& ys, int nthread) {
+	MatrixXYZV grid = MakeGrid(xs, ys);
 	vector<future<void>> futures;
 	auto pages = NPaginate(grid, nthread);
 	for (auto p: pages) {
 		futures.push_back(async(launch::async, [](auto p) {
 			for (auto& row: p) {
 				for (auto& el : row) {
-					el.val = exp(cos(sin(el.x)+sin(el.y)));
+					el.val = el.x+el.y;
 				}
 			}
 		}, p));
+	}
+	return grid;
+}
+
+void TestPDXY() {
+	double xed = 10.;
+	double xwd = 5.;
+	double yed = 10.;
+	double ywd = 5.;
+	double Fcd = 1000;
+	Boundary boundary = Boundary::NNNN;
+	Fracture frac(boundary, xwd, xed,
+			 ywd, yed,
+			Fcd);
+	vector<double> xds = LinSpaced(0.1, 3.9, 10);
+	for (auto x: LinSpaced(4., 6., 41)) {
+		xds.push_back(x);
+	}
+	for (auto x: LinSpaced(4.1, 9.9, 10)) {
+		xds.push_back(x);
+	}
+	vector<double> yds = LinSpaced(4., 6., 21);
+	for (int i = 0; i < xds.size(); ++i) {
+		cout << xds[i] << " ";
+	}
+	cout << endl << endl;
+
+	for (int j = 0; j < yds.size(); ++j) {
+		cout << yds[j] << endl;
+	}
+	cout << endl << endl;
+	auto grid_pd = frac.pd_parallel(1., 4, xds, yds);
+	for (int j = 0; j < yds.size(); ++j) {
+		for (int i = 0; i < xds.size(); ++i) {
+			cout << grid_pd[j][i].val << " ";
+		}
+		cout << endl;
 	}
 }
 
