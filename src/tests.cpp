@@ -105,7 +105,7 @@ void TestPDXY() {
 	double xwd = 5.;
 	double yed = 10.;
 	double ywd = 5.;
-	double Fcd = 1000;
+	double Fcd = 3;
 	Boundary boundary = Boundary::NNNN;
 	Fracture frac(boundary, xwd, xed,
 			 ywd, yed,
@@ -114,7 +114,7 @@ void TestPDXY() {
 	for (auto x: LinSpaced(4., 6., 41)) {
 		xds.push_back(x);
 	}
-	for (auto x: LinSpaced(4.1, 9.9, 10)) {
+	for (auto x: LinSpaced(6.1, 9.9, 10)) {
 		xds.push_back(x);
 	}
 	vector<double> yds = LinSpaced(4., 6., 21);
@@ -127,6 +127,8 @@ void TestPDXY() {
 		cout << yds[j] << endl;
 	}
 	cout << endl << endl;
+	LOG_DURATION("four");
+
 	auto grid_pd = frac.pd_parallel(1., 4, xds, yds);
 	for (int j = 0; j < yds.size(); ++j) {
 		for (int i = 0; i < xds.size(); ++i) {

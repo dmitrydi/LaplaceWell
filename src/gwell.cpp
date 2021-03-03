@@ -281,26 +281,138 @@ void Well::vect_i1f2h_yd(const double u,
 		auto func = [this, adyd, squ](double x) {return this->bess.k0(squ*std::sqrt(x*x+adyd*adyd));};
 		double t1, t2, x1, x2, elem;
 		double mult = xed/xede*0.5*xede/PI;
+		double eps_j;
+		double eps_buf_norm = 0.;
+		double buf_norm;
 		for (int k = 0; k <=KMAX; ++k) {
-			for (double beta: {-1., 1.}) {
-				for (int j = 0; j < 2*NSEG; ++j) {
-					x1 = -1.+j*dx;
-					x2 = x1 + dx;
-					t1 = xede*((xd)/xed+beta*xwd/xed-x2/xed-2.*k);
-					t2 = xede*((xd)/xed+beta*xwd/xed-x1/xed-2.*k);
-					elem = mult*qromb(func, t1, t2, INT_EPS);
+			eps_buf_norm = 0.;
+			buf_norm = 0.;
+			for (int j = 0; j < 2*NSEG; ++j) {
+				x1 = -1.+j*dx;
+				x2 = x1 + dx;
+				elem = 0.;
+				for (double beta: {-1.,1.}) {
+					t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed-2.*k));
+					t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed-2.*k));
+					if (t1 > t2) {
+						double dum = t1;
+						t1 = t2;
+						t2 = dum;
+					}
+					elem += mult*qromb(func, t1, t2, INT_EPS);
 					if (k > 0) {
-						t1 = xede*((xd)/xed+beta*xwd/xed-x2/xed+2.*k);
-						t2 = xede*((xd)/xed+beta*xwd/xed-x1/xed+2.*k);
+						t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed+2.*k));
+						t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed+2.*k));
+						if (t1 > t2) {
+							double dum = t1;
+							t1 = t2;
+							t2 = dum;
+						}
 						elem += mult*qromb(func, t1, t2, INT_EPS);
 					}
-					buf(j) += elem;
 				}
+				buf(j) += elem;
+				buf_norm += buf(j)*buf(j);
+				eps_j = elem/buf(j);
+				eps_buf_norm += eps_j*eps_j;
 			}
-			if ( elem <= TINY || buf(2*NSEG-1) <= TINY || abs(elem/buf(2*NSEG-1)) < SUM_EPS) break;
+			if ((sqrt(buf_norm)*0.5/NSEG <= TINY) || (sqrt(eps_buf_norm)*0.5/NSEG < SUM_EPS)) break;
 		}
 	}
 }
+
+void Well::vect_i1f2h_yd_verbose(const double u,
+		const double xd, const double xwd, const double xed, const double xede,
+		const double yd, const double ywd,
+		const double alpha, Eigen::VectorXd& buf) const {
+	double adyd = abs(ywd-yd);
+	if (adyd < 1e-16)
+	{
+		vect_i1f2h(u, xd, xwd, xed, xede, alpha, buf);
+	} else {
+		buf = Eigen::VectorXd::Zero(2*NSEG);
+		const double squ = sqrt(u+alpha*alpha);
+		auto func = [this, adyd, squ](double x) {return this->bess.k0(squ*std::sqrt(x*x+adyd*adyd));};
+		double t1, t2, x1, x2, elem;
+		double mult = xed/xede*0.5*xede/PI;
+		double eps_j;
+		double eps_buf_norm = 0.;
+		double buf_norm;
+		for (int k = 0; k <=KMAX; ++k) {
+			cerr << "k: " << k << endl;
+			eps_buf_norm = 0.;
+			buf_norm = 0.;
+			for (int j = 0; j < 2*NSEG; ++j) {
+				x1 = -1.+j*dx;
+				x2 = x1 + dx;
+				elem = 0.;
+				for (double beta: {-1.,1.}) {
+					t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed-2.*k));
+					t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed-2.*k));
+					if (t1 > t2) {
+						double dum = t1;
+						t1 = t2;
+						t2 = dum;
+					}
+					cerr << t1 << " " << t2 << endl;
+					elem += mult*qromb(func, t1, t2, INT_EPS);
+					if (k > 0) {
+						t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed+2.*k));
+						t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed+2.*k));
+						if (t1 > t2) {
+							double dum = t1;
+							t1 = t2;
+							t2 = dum;
+						}
+						cerr << t1 << " " << t2 << endl;
+						elem += mult*qromb(func, t1, t2, INT_EPS);
+					}
+				}
+				buf(j) += elem;
+				buf_norm += buf(j)*buf(j);
+				eps_j = elem/buf(j);
+				eps_buf_norm += eps_j*eps_j;
+			}
+			if ((sqrt(buf_norm)*0.5/NSEG <= TINY) || (sqrt(eps_buf_norm)*0.5/NSEG < SUM_EPS)) break;
+
+
+//			cerr << "k: " << k << endl;
+//			for (double beta: {-1., 1.}) {
+//				for (int j = 0; j < 2*NSEG; ++j) {
+//					x1 = -1.+j*dx;
+//					x2 = x1 + dx;
+//					t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed-2.*k));
+//					t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed-2.*k));
+//					if (t1 > t2) {
+//						double dum = t1;
+//						t1 = t2;
+//						t2 = dum;
+//					}
+//					cerr << t1 << " " << t2 << endl;
+//					elem = mult*qromb(func, t1, t2, INT_EPS);
+//					if (k > 0) {
+//						t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed+2.*k));
+//						t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed+2.*k));
+//						if (t1 > t2) {
+//							double dum = t1;
+//							t1 = t2;
+//							t2 = dum;
+//						}
+//						cerr << t1 << " " << t2 << endl;
+//						elem += mult*qromb(func, t1, t2, INT_EPS);
+//					}
+//					buf(j) += elem;
+//					eps_j = abs(elem/buf(j));
+//					if (eps_j > max_eps_j) max_eps_j = eps_j;
+//					eps_buf_norm += eps_j*eps_j;
+//				}
+//			}
+//			cerr << "----------" << endl;
+//			if ( (elem <= TINY || buf(2*NSEG-1) <= TINY || max_eps_j < SUM_EPS)) break;
+		}
+	}
+}
+
 
 void Well::fill_i2f2h(const double u, const double ywd, const double alpha, Eigen::MatrixXd& matrix) const {
 	double squ = sqrt(u+alpha*alpha);
@@ -398,10 +510,13 @@ Eigen::VectorXd Fracture::MakeGreenVector(const double u, const double xd, const
 	double mult = PI/xed;
 	vect_if1_yd(u, yd, ywd, yed, alpha, buf);
 	ans = mult*buf;
+	buf = Eigen::VectorXd::Zero(2*NSEG);
 	vect_if2e_yd(u, xd, xwd, xed, xede,	yd, ywd, yed, alpha, buf);
 	ans += mult*buf;
+	buf = Eigen::VectorXd::Zero(2*NSEG);
 	vect_i1f2h_yd(u, xd, xwd, xed, xede, yd, ywd, alpha, buf);
 	ans += mult*buf;
+	buf = Eigen::VectorXd::Zero(2*NSEG);
 	vect_i2f2h_yd(u, yd, ywd, alpha, buf);
 	ans += mult*buf;
 	return ans;

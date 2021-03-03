@@ -101,7 +101,7 @@ namespace Rectangular {
 
 static const int NSEG = 20;
 static const double SUM_EPS = 1e-8;
-static const double INT_EPS = 1e-9;
+static const double INT_EPS = 1e-12;
 static const int KMAX = 10000;
 static const int KMIN = 10;
 static const double PI = 3.141592653589793;
@@ -157,6 +157,11 @@ protected:
 			const double xd, const double xwd, const double xed, const double xede,
 			const double yd, const double ywd,
 			const double alpha, Eigen::VectorXd& buf) const;
+
+	void vect_i1f2h_yd_verbose(const double u,
+				const double xd, const double xwd, const double xed, const double xede,
+				const double yd, const double ywd,
+				const double alpha, Eigen::VectorXd& buf) const;
 
 	void fill_i2f2h(const double u, const double ywd, const double alpha, Eigen::MatrixXd& matrix) const;
 	void vect_i2f2h_yd(const double u, const double yd, const double ywd, const double alpha, Eigen::VectorXd& buf) const;
