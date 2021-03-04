@@ -19,6 +19,7 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
 #include "gwell.h"
+#include <fstream>
 
 std::ostream& operator<<(std::ostream& os, const PointXYZV& p);
 
@@ -31,3 +32,14 @@ MatrixXYZV _TestParallelDum(const std::vector<double>& xs, const std::vector<dou
 void TestParallelDum();
 
 void TestPDXY();
+
+void TestMatrix3DV();
+
+void TestMatrix3DV_Pages();
+
+void Test_pd_lapl_m();
+
+void TestPDXY_old_new();
+
+void TestCincoNew();
+

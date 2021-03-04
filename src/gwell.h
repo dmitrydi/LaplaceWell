@@ -23,6 +23,7 @@
 #include "quadrature.h"
 #include "auxillary.h"
 
+
 static const int NCOEF = 12;
 
 std::vector<double> CalcStehf(const int n);
@@ -32,6 +33,11 @@ std::vector<double> CalcStehf(const int n);
 class LaplWell {
 public:
 	LaplWell();
+	virtual double pd_lapl(const double u, const double xd, const double yd, const double zd = 0.) const = 0;
+	virtual double pwd_lapl(const double u) const = 0;
+	virtual double qwd_lapl(const double u) const = 0;
+	virtual ~LaplWell();
+
 	double pwd(const double td) const;
 	double qwd(const double td) const;
 	double pd(const double td, const double xd, const double yd, const double zd = 0.) const;
@@ -42,10 +48,13 @@ public:
 			const std::vector<double>& ys,
 			const std::vector<double>& zs = {0.}) const;
 	void pd_thread(const double td, IteratorRange<MatrixXYZV::iterator> page) const;
+	Matrix3DV pd_m_parallel(const double td, int nthreads, const std::vector<double>& xs,
+			const std::vector<double>& ys,
+			const std::vector<double>& zs = {0.}) const;
+	Matrix3DV pd_lapl_m(const double u, const Matrix3DV& grid, int nthread) const;
+	void pd_lapl_m(const double u, const Matrix3DV& grid, Matrix3DV& buf, int nthread) const;
 
-//	void XYPageSingleThread(const double td,
-//				IteratorRange<MatrixXY::iterator> m_in,
-//				IteratorRange<MatrixD::iterator> m_out) const;
+
 	template <typename Func>
 	double InverseLaplace(Func func, const double td) const {
 		double s_mult = std::log(2.)/td;
@@ -89,10 +98,7 @@ public:
 			y_begin = next(y_begin, step);
 		} while(SafeNext(x_begin, x_end, step));
 	}
-	virtual double pd_lapl(const double u, const double xd, const double yd, const double zd = 0.) const = 0;
-	virtual double pwd_lapl(const double u) const = 0;
-	virtual double qwd_lapl(const double u) const = 0;
-	virtual ~LaplWell();
+
 protected:
 	const std::vector<double> stehf_coefs;
 };
@@ -121,10 +127,12 @@ public:
 protected:
 	const FastBessel::Bess bess;
 	const double dx;
+
 	virtual Eigen::MatrixXd MakeMatrix(const double u) const = 0;
 	virtual Eigen::VectorXd MakeRhs(const double u) const = 0;
 	virtual Eigen::MatrixXd MakeSrcMatrix() const = 0;
 	virtual Eigen::VectorXd MakeGreenVector(const double u, const double xd, const double yd, const double zd = 0.) const = 0;
+
 	double SEXP(const double y, const double e) const;
 	void fill_if1(const double u,
 			const double ywd, const double yed,
@@ -173,6 +181,7 @@ public:
 	Fracture(const Boundary boundary, const double xwd, const double xed,
 			const double ywd, const double yed,
 			const double Fcd, const double alpha = 0.);
+
 	double pd_lapl(const double u, const double xd, const double yd, const double zd = 0.) const override;
 	double pwd_lapl(const double u) const override;
 	double qwd_lapl(const double u) const override;

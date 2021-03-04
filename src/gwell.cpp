@@ -53,49 +53,49 @@ void LaplWell::pd_thread(const double td, IteratorRange<MatrixXYZV::iterator> pa
 	}
 };
 
-//void LaplWell::pd_parallel(const double td, const VectorD& xs, const VectorD& ys, MatrixD& ans, int nthreads) const {
-//	vector<future<void>> futures;
-//	MatrixXY m_input = MakeGrid(xs, ys);
-//	assert(m_input.size() == ans.size());
-//	assert(m_input[0].size() == ans[0].size());
-//	size_t page_size;
-//	if ((m_input.size() % nthreads) == 0 ) {
-//		page_size = m_input.size()/nthreads;
-//	} else {
-//		page_size = m_input.size()/nthreads+1;
-//	}
-//
-//	auto in_pages = Paginate(m_input, page_size);
-//	auto out_pages = Paginate(ans, page_size);
-//	auto in_page = in_pages.begin();
-//	auto out_page = out_pages.begin();
-//	for (int i = 0; i < nthreads; ++i) {
-//		futures.push_back(async(std::launch::async, [&]{return XYPageSingleThread(td, *in_page++, *out_page++);}));
-//	}
-//}
+Matrix3DV LaplWell::pd_m_parallel(const double td, int nthreads, const std::vector<double>& xs,
+			const std::vector<double>& ys,
+			const std::vector<double>& zs) const {
+	Matrix3DV grid = MakeGrid2(xs, ys, zs);
+	Matrix3DV aux = grid;
+	double s_mult = std::log(2.)/td;
+	for (int i = 1; i <= NCOEF; ++i) {
+		double s = i*s_mult;
+		{
+			pd_lapl_m(s, grid, aux, nthreads);
+			aux.MultVals(s*stehf_coefs[i]/i);
+			grid.AddVals(aux);
+		}
+	}
+	return grid;
+}
 
-//void LaplWell::XYPageSingleThread(const double td,
-//			IteratorRange<MatrixXY::iterator> m_in,
-//			IteratorRange<MatrixD::iterator> m_out) const {
-//	size_t nrows = m_in.size();
-//	assert(nrows==m_out.size());
-//	size_t ncols = m_in.begin()->size();
-//	//assert(ncols==m_out.begin()->size());
-//	auto in_row = m_in.begin();
-//	auto out_row = m_out.begin();
-//	for (size_t i = 0; i < nrows; ++i) {
-//		auto point = in_row->begin();
-//		auto out = out_row->begin();
-//		for (size_t j = 0; j < ncols; ++j) {
-//			*out = dum_pd(td, point->x, point->y);
-//			++point;
-//			++out;
-//		}
-//		++in_row;
-//		++out_row;
-//	}
-//
-//}
+Matrix3DV LaplWell::pd_lapl_m(const double u, const Matrix3DV& grid, int nthread) const {
+	Matrix3DV ans = grid;
+	auto pages = NPaginate(ans, nthread);
+	vector<future<void>> futures;
+	for (auto& page: pages) {
+		futures.push_back(async([this, u](auto pg){
+			for (auto& p: pg) {
+				p.val = this->pd_lapl(u, p.x, p.y, p.z);
+			};
+		}, page));
+	}
+	return ans;
+}
+
+void LaplWell::pd_lapl_m(const double u, const Matrix3DV& grid, Matrix3DV& ans, int nthread) const {
+	ans = grid;
+	auto pages = NPaginate(ans, nthread);
+	vector<future<void>> futures;
+	for (auto& page: pages) {
+		futures.push_back(async([this, u](auto pg){
+			for (auto& p: pg) {
+				p.val = this->pd_lapl(u, p.x, p.y, p.z);
+			};
+		}, page));
+	}
+}
 
 namespace Rectangular {
 Well::Well(): LaplWell(), bess(false), dx(1./NSEG) {};
@@ -374,41 +374,6 @@ void Well::vect_i1f2h_yd_verbose(const double u,
 				eps_buf_norm += eps_j*eps_j;
 			}
 			if ((sqrt(buf_norm)*0.5/NSEG <= TINY) || (sqrt(eps_buf_norm)*0.5/NSEG < SUM_EPS)) break;
-
-
-//			cerr << "k: " << k << endl;
-//			for (double beta: {-1., 1.}) {
-//				for (int j = 0; j < 2*NSEG; ++j) {
-//					x1 = -1.+j*dx;
-//					x2 = x1 + dx;
-//					t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed-2.*k));
-//					t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed-2.*k));
-//					if (t1 > t2) {
-//						double dum = t1;
-//						t1 = t2;
-//						t2 = dum;
-//					}
-//					cerr << t1 << " " << t2 << endl;
-//					elem = mult*qromb(func, t1, t2, INT_EPS);
-//					if (k > 0) {
-//						t1 = abs(xede*((xd)/xed+beta*xwd/xed-x2/xed+2.*k));
-//						t2 = abs(xede*((xd)/xed+beta*xwd/xed-x1/xed+2.*k));
-//						if (t1 > t2) {
-//							double dum = t1;
-//							t1 = t2;
-//							t2 = dum;
-//						}
-//						cerr << t1 << " " << t2 << endl;
-//						elem += mult*qromb(func, t1, t2, INT_EPS);
-//					}
-//					buf(j) += elem;
-//					eps_j = abs(elem/buf(j));
-//					if (eps_j > max_eps_j) max_eps_j = eps_j;
-//					eps_buf_norm += eps_j*eps_j;
-//				}
-//			}
-//			cerr << "----------" << endl;
-//			if ( (elem <= TINY || buf(2*NSEG-1) <= TINY || max_eps_j < SUM_EPS)) break;
 		}
 	}
 }
@@ -440,6 +405,8 @@ double Fracture::pd_lapl(const double u, const double xd, const double yd, const
 	}
 	return ans;
 };
+
+
 
 double Fracture::pwd_lapl(const double u) const {
 	return MakeMatrix(u).colPivHouseholderQr().solve(MakeRhs(u))(0);
