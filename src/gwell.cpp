@@ -30,33 +30,10 @@ double LaplWell::pd(const double td, const double xd, const double yd, const dou
 	return InverseLaplaceXYZ(pd_lapl, td, xd, yd, zd);
 }
 
-double LaplWell::dum_pd(const double td, const double xd, const double yd, const double zd) const {
-	return td*xd*yd;
-};
-
-MatrixXYZV LaplWell::pd_parallel(const double td, int nthreads, const std::vector<double>& xs,
-			const std::vector<double>& ys,
-			const std::vector<double>& zs) const {
-	vector<future<void>> futures;
-	MatrixXYZV grid = MakeGrid(xs, ys, zs);
-	auto pages = NPaginate(grid, nthreads);
-	for (auto p: pages) {
-		futures.push_back(async([&](auto pg){return pd_thread(td, pg);}, p));
-	}
-	return grid;
-};
-void LaplWell::pd_thread(const double td, IteratorRange<MatrixXYZV::iterator> page) const {
-	for (auto& row: page) {
-		for (auto& el : row) {
-			el.val = pd(td, el.x, el.y, el.z);
-		}
-	}
-};
-
 Matrix3DV LaplWell::pd_m_parallel(const double td, int nthreads, const std::vector<double>& xs,
 			const std::vector<double>& ys,
 			const std::vector<double>& zs) const {
-	Matrix3DV grid = MakeGrid2(xs, ys, zs);
+	Matrix3DV grid = MakeGrid(xs, ys, zs);
 	Matrix3DV aux = grid;
 	double s_mult = std::log(2.)/td;
 	for (int i = 1; i <= NCOEF; ++i) {

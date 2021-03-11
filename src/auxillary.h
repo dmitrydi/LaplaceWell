@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cassert>
 #include <iterator>
+#include <stdexcept>
 
 struct PointXYZV;
 
@@ -108,10 +109,39 @@ std::ostream& operator <<(std::ostream& os, const PointXYZV& p);
 
 
 typedef std::vector<PointXYZV> VectorXYZV;
-typedef std::vector<VectorXYZV> MatrixXYZV;
+typedef std::vector<std::vector<double>> MatrixD;
+typedef std::vector<double> VectorD;
 
+std::ostream& operator <<(std::ostream& os, const MatrixD& m);
 
-MatrixXYZV MakeGrid(const std::vector<double>& xs, const std::vector<double>& ys, const std::vector<double>& zs = {0.});
+enum class MatrixField {
+	X,
+	Y,
+	Z,
+	Val
+};
+
+enum class MatrixAxis {
+	X,
+	Y,
+	Z
+};
+
+class FieldGetter {
+public:
+	FieldGetter(const MatrixField f);
+	double operator()(const PointXYZV& p) const;
+private:
+	MatrixField field;
+};
+
+class AxisGetter {
+public:
+	AxisGetter(const MatrixAxis a);
+	double operator ()(const PointXYZV& p) const;
+private:
+	MatrixAxis axis;
+};
 
 class Matrix3DV {
 public:
@@ -128,10 +158,12 @@ public:
 	void DivVals(const double d);
 	size_t size() const;
 	std::vector<PointXYZV> get();
+	MatrixD GetField(MatrixField f) const;
+	VectorD GetAxis(MatrixAxis a) const;
 private:
 	size_t nx, ny, nz, n;
 	std::vector<PointXYZV> data;
 	friend std::ostream& operator<<(std::ostream& os, const Matrix3DV&);
 };
 
-Matrix3DV MakeGrid2(const std::vector<double>& xs, const std::vector<double>& ys, const std::vector<double>& zs = {0.});
+Matrix3DV MakeGrid(const std::vector<double>& xs, const std::vector<double>& ys, const std::vector<double>& zs = {0.});
