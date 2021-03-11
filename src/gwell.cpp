@@ -371,7 +371,9 @@ Fracture::Fracture(const Boundary boundary, const double xwd, const double xed,
 		const double ywd, const double yed,
 		const double Fcd, const double alpha): Well(),
 				xwd(xwd), xed(xed), xede(xed), ywd(ywd), yed(yed), Fcd(Fcd), alpha(alpha), boundary(boundary),
-				_src_matrix(MakeSrcMatrix()){};
+				_src_matrix(MakeSrcMatrix()){
+	if (boundary != Boundary::NNNN) throw logic_error("not implemented");
+};
 
 double Fracture::pd_lapl(const double u, const double xd, const double yd, const double zd) const {
 	Eigen::VectorXd svect = MakeMatrix(u).colPivHouseholderQr().solve(MakeRhs(u));
