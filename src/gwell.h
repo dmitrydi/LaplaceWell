@@ -41,8 +41,8 @@ public:
 	double pwd(const double td) const;
 	double qwd(const double td) const;
 	double pd(const double td, const double xd, const double yd, const double zd = 0.) const;
-	void pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const;
-	void qwd_parallel(std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const;
+	void pwd_parallel(const std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const;
+	void qwd_parallel(const std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const;
 
 	Matrix3DV pd_m_parallel(const double td, int nthreads, const std::vector<double>& xs,
 			const std::vector<double>& ys,
@@ -65,7 +65,7 @@ public:
 	}
 
 	template <typename Func>
-	void InverseLaplaceParallel(Func func, std::vector<double>& tds, std::vector<double>& props, int nthreads) const {
+	void InverseLaplaceParallel(Func func, const std::vector<double>& tds, std::vector<double>& props, int nthreads) const {
 		assert (tds.size() == props.size());
 		std::vector<std::future<void>> fut;
 		auto xbegin = tds.begin();
@@ -87,8 +87,8 @@ public:
 		}
 		return ans;
 	}
-	template <typename Func, typename Iterator>
-	void TSingleThread(Func func, Iterator x_begin, Iterator x_end, Iterator y_begin, int step) const {
+	template <typename Func, typename Iterator1, typename Iterator2>
+	void TSingleThread(Func func, Iterator1 x_begin, Iterator1 x_end, Iterator2 y_begin, int step) const {
 		do {
 			*y_begin = (this->*func)(*x_begin);
 			y_begin = next(y_begin, step);

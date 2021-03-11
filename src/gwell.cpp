@@ -14,7 +14,7 @@ LaplWell::~LaplWell() {};
 double LaplWell::pwd(const double td) const {
 	return InverseLaplace(pwd_lapl, td);
 }
-void LaplWell::pwd_parallel(std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const {
+void LaplWell::pwd_parallel(const std::vector<double>& tds, std::vector<double>& pwds, int nthreads) const {
 	InverseLaplaceParallel(pwd, tds, pwds, nthreads);
 }
 
@@ -22,7 +22,7 @@ double LaplWell::qwd(const double td) const {
 	return InverseLaplace(qwd_lapl, td);
 }
 
-void LaplWell::qwd_parallel(std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const {
+void LaplWell::qwd_parallel(const std::vector<double>& tds, std::vector<double>& qwds, int nthreads) const {
 	InverseLaplaceParallel(qwd, tds, qwds, nthreads);
 }
 
