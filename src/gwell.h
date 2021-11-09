@@ -1,10 +1,3 @@
-/*
- * gwell.h
- *
- *  Created on: 25 февр. 2021 г.
- *      Author: Dmitry_Di
- */
-
 #pragma once
 
 #include <Eigen/Dense>
@@ -24,11 +17,27 @@
 #include "auxillary.h"
 
 
-static const int NCOEF = 12;
+static const int NCOEF = 10;
 
 std::vector<double> CalcStehf(const int n);
 
+enum class WellType {
+	Fracture,
+	MultiFractured,
+	Horizontal,
+	Vertical
+};
 
+enum class Boundary {
+	NNNN,
+	CCCC
+};
+
+enum class DrainageArea {
+	Infinite,
+	Rectangular,
+	Circle
+};
 
 class LaplWell {
 public:
@@ -101,19 +110,13 @@ protected:
 
 namespace Rectangular {
 
-static const int NSEG = 20;
-static const double SUM_EPS = 1e-8;
+static const int NSEG = 40;
+static const double SUM_EPS = 1e-10;
 static const double INT_EPS = 1e-12;
 static const int KMAX = 10000;
 static const int KMIN = 10;
 static const double PI = 3.141592653589793;
 static const double TINY = std::numeric_limits<double>::min();
-
-
-enum class Boundary {
-	NNNN,
-	CCCC
-};
 
 class Well: public LaplWell {
 public:

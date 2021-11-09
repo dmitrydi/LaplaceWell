@@ -1,10 +1,3 @@
-/*
- * tests.cpp
- *
- *  Created on: 2 мар. 2021 г.
- *      Author: Dmitry_Di
- */
-
 #include "tests.h"
 
 using namespace std;
@@ -120,9 +113,9 @@ void ShowPdXY() {
 	vector<double> yds = LinSpaced(4., 6., 21);
 	Matrix3DV grid_pd_new;
 
-	{ LOG_DURATION("new");
+	//{ LOG_DURATION("new");
 		grid_pd_new = frac.pd_m_parallel(1., 4, xds, yds);
-	}
+	//}
 	VectorD xgrid = grid_pd_new.GetAxis(MatrixAxis::X);
 	VectorD ygrid = grid_pd_new.GetAxis(MatrixAxis::Y);
 	MatrixD vals = grid_pd_new.GetField(MatrixField::Val);
@@ -131,6 +124,10 @@ void ShowPdXY() {
 	for (auto y: ygrid) cout << y << " ";
 	cout << endl;
 	cout << vals;
+	cout << xgrid.size() << endl;
+	cout << ygrid.size() << endl;
+	ofstream of("out.txt");
+	of << grid_pd_new;
 }
 
 void TestMatrix3DV() {

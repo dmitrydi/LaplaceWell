@@ -1,11 +1,3 @@
-//============================================================================
-// Name        : pd_lapl4.cpp
-// Author      : 
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
-
 #include <iostream>
 #include <future>
 #include <vector>
@@ -21,7 +13,7 @@ using namespace Rectangular;
 
 int main() {
 	TestRunner tr;
-	//RUN_TEST(tr, TestCinco);
-	//RUN_TEST(tr, TestPdLaplParallel);
+	RUN_TEST(tr, TestCinco);
+	RUN_TEST(tr, TestPdLaplParallel);
 	RUN_TEST(tr, ShowPdXY);
 }
