@@ -1,9 +1,3 @@
-/*
- * chbessel.cpp
- *
- *  Created on: 15 џэт. 2021 у.
- *      Author: Dmitry_Di
- */
 #include "chbessel.h"
 
 using namespace std;

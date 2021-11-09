@@ -1,10 +1,3 @@
-/*
- * chbessel.h
- *
- *  Created on: 15 џэт. 2021 у.
- *      Author: Dmitry_Di
- */
-
 #pragma once
 
 #include <vector>
@@ -14,8 +7,6 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
-
-
 
 namespace FastBessel {
 
@@ -90,7 +81,7 @@ static const double TINY = std::numeric_limits<double>::min();
 class Bess {
 	// calculates modified bessel function of second kind and its integral using Chebyshev polynomial expansion
 public:
-	Bess(const bool fast = false, const int n = 34, const int m = 34, const double dd = 2.);
+	Bess(const bool fast = false, const int n = 34, const int m = 34, const double d = 2.);
 	//-----------
 	double ik00x_ch(const double x) const; // t: [0, x], chebyshev approximation for x >= d;
 	long double ik00x_pwr(const double x) const; // t: [0, x], power approximation for t < d;

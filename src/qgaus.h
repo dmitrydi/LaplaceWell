@@ -1,10 +1,3 @@
-/*
- * qgaus.h
- *
- *  Created on: 26 но€б. 2020 г.
- *      Author: Dmitry_Di
- */
-
 #pragma once
 
 #include <vector>
